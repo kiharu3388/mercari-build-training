@@ -2,8 +2,8 @@ package main
 
 import (
 	"crypto/sha256"
+	"database/sql"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -15,6 +15,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 const (
@@ -85,36 +86,91 @@ func addItem(c echo.Context) error {
 
 	items.Items = append(items.Items, item)
 
-	f, err := os.OpenFile("items.json", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	db, err := sql.Open("sqlite3", "/Users/kitaharuka/mercari-build-training/db/mercari.sqlite3")
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer db.Close()
 
-	output, err := json.Marshal(&items)
+	var categoryID int
+
+	cmd := "SELECT id FROM categories WHERE name = $1"
+	row := db.QueryRow(cmd, item.Category)
+	err = row.Scan(&categoryID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			_, err = db.Exec("INSERT INTO categories (name) VALUES ($1)", item.Category)
+			if err != nil {
+				return err
+			}
+			row := db.QueryRow(cmd, item.Category)
+			err = row.Scan(&categoryID)
+			if err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+	}
+
+	cmd2 := "INSERT INTO items (name, category_id, image_name) VALUES ($1, $2, $3)"
+	_, err = db.Exec(cmd2, item.Name, categoryID, item.Image)
 	if err != nil {
 		return err
 	}
 
-	_, err = f.Write(output)
-	if err != nil {
-		return err
-	}
+	// f, err := os.OpenFile("items.json", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	// if err != nil {
+	// 	return err
+	// }
+	// defer f.Close()
+
+	// output, err := json.Marshal(&items)
+	// if err != nil {
+	// 	return err
+	// }
+
+	// _, err = f.Write(output)
+	// if err != nil {
+	// 	return err
+	// }
 
 	return c.JSON(http.StatusOK, res)
 }
 
 func getItems(c echo.Context) error {
 	var items Items
-	jsonBytes, err := os.ReadFile("items.json")
+
+	db, err := sql.Open("sqlite3", "/Users/kitaharuka/mercari-build-training/db/mercari.sqlite3")
 	if err != nil {
 		return err
+	}
+	defer db.Close()
+
+	rows, err := db.Query("SELECT items.name, categories.name, items.image_name FROM items JOIN categories ON items.category_id = categories.id")
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var name, category, image string
+		if err := rows.Scan(&name, &category, &image); err != nil {
+			return err
+		}
+		item := Item{Name: name, Category: category, Image: image}
+		items.Items = append(items.Items, item)
 	}
 
-	err = json.Unmarshal(jsonBytes, &items)
-	if err != nil {
-		return err
-	}
+	// jsonBytes, err := os.ReadFile("items.json")
+	// if err != nil {
+	// 	return err
+	// }
+
+	// err = json.Unmarshal(jsonBytes, &items)
+	// if err != nil {
+	// 	return err
+	// }
 
 	return c.JSON(http.StatusOK, items)
 }
@@ -125,16 +181,65 @@ func getItemById(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-	jsonBytes, err := os.ReadFile("items.json")
-	if err != nil {
-		return err
-	}
 
-	err = json.Unmarshal(jsonBytes, &items)
+	db, err := sql.Open("sqlite3", "/Users/kitaharuka/mercari-build-training/db/mercari.sqlite3")
 	if err != nil {
 		return err
 	}
+	defer db.Close()
+
+	cmd := "SELECT items.name, categories.name, items.image_name FROM items JOIN categories ON items.category_id = categories.id WHERE items.id LIKE ?"
+	rows, err := db.Query(cmd, id)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var name, category, image string
+		if err := rows.Scan(&name, &category, &image); err != nil {
+			return err
+		}
+		item := Item{Name: name, Category: category, Image: image}
+		items.Items = append(items.Items, item)
+	}
+	// jsonBytes, err := os.ReadFile("items.json")
+	// if err != nil {
+	// 	return err
+	// }
+
+	// err = json.Unmarshal(jsonBytes, &items)
+	// if err != nil {
+	// 	return err
+	// }
 	return c.JSON(http.StatusOK, items.Items[id-1])
+}
+
+func searchItem(c echo.Context) error {
+	var items Items
+	keyword := c.FormValue("keyword")
+	db, err := sql.Open("sqlite3", "/Users/kitaharuka/mercari-build-training/db/mercari.sqlite3")
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	cmd := "SELECT items.name, categories.name, items.image_name FROM items JOIN categories ON items.category_id = categories.id WHERE items.name LIKE ?"
+	rows, err := db.Query(cmd, "%"+keyword+"%")
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var name, category, image string
+		if err := rows.Scan(&name, &category, &image); err != nil {
+			return err
+		}
+		item := Item{Name: name, Category: category, Image: image}
+		items.Items = append(items.Items, item)
+	}
+	return c.JSON(http.StatusOK, items)
 }
 
 func getImg(c echo.Context) error {
@@ -177,6 +282,7 @@ func main() {
 	e.GET("/items", getItems)
 	e.GET("/image/:imageFilename", getImg)
 	e.GET("/items/:id", getItemById)
+	e.GET("/search", searchItem)
 
 	// Start server
 	e.Logger.Fatal(e.Start(":9000"))
