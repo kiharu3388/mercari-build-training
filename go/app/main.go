@@ -35,14 +35,13 @@ type Response struct {
 	Message string `json:"message"`
 }
 
-var items Items
-
 func root(c echo.Context) error {
 	res := Response{Message: "Hello, world!"}
 	return c.JSON(http.StatusOK, res)
 }
 
 func addItem(c echo.Context) error {
+	var items Items
 	// Get form data
 	name := c.FormValue("name")
 	category := c.FormValue("category")
@@ -70,7 +69,7 @@ func addItem(c echo.Context) error {
 	// Convert hash bytes to hex string
 	hashString := hex.EncodeToString(hashInBytes)
 
-	var image_jpg = hashString + ".jpg"
+	image_jpg := hashString + ".jpg"
 
 	item := Item{Name: name, Category: category, Image: image_jpg}
 
@@ -101,6 +100,7 @@ func addItem(c echo.Context) error {
 }
 
 func getItems(c echo.Context) error {
+	var items Items
 	jsonBytes, err := os.ReadFile("items.json")
 	if err != nil {
 		return err
@@ -115,7 +115,10 @@ func getItems(c echo.Context) error {
 }
 
 func getItemById(c echo.Context) error {
-	id, _ := strconv.Atoi(c.Param("id"))
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		return err
+	}
 	jsonBytes, err := os.ReadFile("items.json")
 	if err != nil {
 		return err
