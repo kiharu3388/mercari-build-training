@@ -115,6 +115,7 @@ func getItems(c echo.Context) error {
 }
 
 func getItemById(c echo.Context) error {
+	var items Items
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		return err
