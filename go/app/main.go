@@ -65,8 +65,6 @@ func addItem(c echo.Context) error {
 	hashString := hex.EncodeToString(hashInBytes)
 
 	image_jpg := hashString + ".jpg"
-<<<<<<< HEAD
-=======
 
 	new_image, err := os.Create("images/" + image_jpg)
 	if err != nil {
@@ -77,7 +75,6 @@ func addItem(c echo.Context) error {
 	if _, err := io.Copy(new_image, src); err != nil {
 		return err
 	}
->>>>>>> 46909e8 (STEP3.4)
 
 	item := Item{Name: name, Category: category, Image: image_jpg}
 
