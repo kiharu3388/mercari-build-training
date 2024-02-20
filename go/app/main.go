@@ -59,17 +59,25 @@ func addItem(c echo.Context) error {
 	// Create a new SHA256 hash
 	hash := sha256.New()
 
-	// Copy the file content to the hash
-	if _, err := io.Copy(hash, src); err != nil {
-		return err
-	}
-
 	hashInBytes := hash.Sum(nil)
 
 	// Convert hash bytes to hex string
 	hashString := hex.EncodeToString(hashInBytes)
 
 	image_jpg := hashString + ".jpg"
+<<<<<<< HEAD
+=======
+
+	new_image, err := os.Create("images/" + image_jpg)
+	if err != nil {
+		return err
+	}
+
+	// Copy the file content to the hash
+	if _, err := io.Copy(new_image, src); err != nil {
+		return err
+	}
+>>>>>>> 46909e8 (STEP3.4)
 
 	item := Item{Name: name, Category: category, Image: image_jpg}
 
