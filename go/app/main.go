@@ -43,6 +43,8 @@ func root(c echo.Context) error {
 
 func addItem(c echo.Context) error {
 	var items Items
+	var categoryID int
+	const getCategoryFromNameQuery = "SELECT id FROM categories WHERE name = $1"
 	// Get form data
 	name := c.FormValue("name")
 	category := c.FormValue("category")
@@ -92,10 +94,7 @@ func addItem(c echo.Context) error {
 	}
 	defer db.Close()
 
-	var categoryID int
-
-	cmd := "SELECT id FROM categories WHERE name = $1"
-	row := db.QueryRow(cmd, item.Category)
+	row := db.QueryRow(getCategoryFromNameQuery, item.Category)
 	err = row.Scan(&categoryID)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -103,7 +102,7 @@ func addItem(c echo.Context) error {
 			if err != nil {
 				return err
 			}
-			row := db.QueryRow(cmd, item.Category)
+			row := db.QueryRow(getCategoryFromNameQuery, item.Category)
 			err = row.Scan(&categoryID)
 			if err != nil {
 				return err
@@ -254,7 +253,6 @@ func getImg(c echo.Context) error {
 		c.Logger().Debugf("Image not found: %s", imgPath) //log.DEBUGじゃないと表示されない
 		imgPath = path.Join(ImgDir, "default.jpg")
 	}
-	//os.Stat
 	return c.File(imgPath)
 }
 
