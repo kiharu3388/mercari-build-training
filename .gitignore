@@ -2,4 +2,4 @@
 *.jpg
 go/go.sum
 go/items.json
-data/konnichiha.png
+*.png
