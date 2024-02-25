@@ -15,6 +15,7 @@ RUN chown -R trainee:mercari /app/db
 WORKDIR /app/go
 
 RUN go mod tidy
+
 RUN CGO_ENABLED=1 go build -o ./mercari-build-training ./app/*.go
 
 CMD go run app/main.go
