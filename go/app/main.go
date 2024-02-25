@@ -225,19 +225,26 @@ func getImg(c echo.Context) error {
 }
 
 func setupDatabase() error {
-	// Open the database
 	db, err := sql.Open("sqlite3", DB_PATH)
 	if err != nil {
+		fmt.Println("Failed to open mercari.sqlite")
 		return err
 	}
-	// Create table if not exists
-	result, err := os.ReadFile(DB_SCHEMA_PATH)
+	defer db.Close()
+
+	schema, err := os.ReadFile(DB_SCHEMA_PATH)
 	if err != nil {
+		fmt.Println("Failed to read schema:", err)
 		return err
 	}
-	if _, err := db.Exec(string(result)); err != nil {
+
+	_, err = db.Exec(string(schema))
+	if err != nil {
+		fmt.Println(string(schema))
+		fmt.Println("Failed to create tables:", err)
 		return err
 	}
+
 	return nil
 }
 
@@ -260,7 +267,7 @@ func main() {
 	}))
 
 	if err := setupDatabase(); err != nil {
-		fmt.Println("Failed to create tables")
+		fmt.Println("Failed to set up tables:", err)
 		return
 	}
 
