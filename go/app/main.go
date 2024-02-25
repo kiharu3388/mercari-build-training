@@ -19,8 +19,9 @@ import (
 )
 
 const (
-	ImgDir  = "images"
-	DB_PATH = "../db/mercari.sqlite3"
+	ImgDir         = "images"
+	DB_PATH        = "../db/mercari.sqlite3"
+	DB_SCHEMA_PATH = "../db/items.db"
 )
 
 type Items struct {
@@ -223,6 +224,23 @@ func getImg(c echo.Context) error {
 	return c.File(imgPath)
 }
 
+func setupDatabase() error {
+	// Open the database
+	db, err := sql.Open("sqlite3", DB_PATH)
+	if err != nil {
+		return err
+	}
+	// Create table if not exists
+	result, err := os.ReadFile(DB_SCHEMA_PATH)
+	if err != nil {
+		return err
+	}
+	if _, err := db.Exec(string(result)); err != nil {
+		return err
+	}
+	return nil
+}
+
 func main() {
 	e := echo.New()
 
@@ -240,6 +258,11 @@ func main() {
 		AllowOrigins: []string{frontURL},
 		AllowMethods: []string{http.MethodGet, http.MethodPut, http.MethodPost, http.MethodDelete},
 	}))
+
+	if err := setupDatabase(); err != nil {
+		fmt.Println("Failed to create tables")
+		return
+	}
 
 	// Routes
 	e.GET("/", root)
