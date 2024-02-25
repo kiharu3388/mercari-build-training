@@ -19,7 +19,8 @@ import (
 )
 
 const (
-	ImgDir = "images"
+	ImgDir  = "images"
+	DB_PATH = "../db/mercari.sqlite3"
 )
 
 type Items struct {
@@ -88,7 +89,7 @@ func addItem(c echo.Context) error {
 
 	items.Items = append(items.Items, item)
 
-	db, err := sql.Open("sqlite3", "/Users/kitaharuka/mercari-build-training/db/mercari.sqlite3")
+	db, err := sql.Open("sqlite3", DB_PATH)
 	if err != nil {
 		return err
 	}
@@ -118,29 +119,13 @@ func addItem(c echo.Context) error {
 		return err
 	}
 
-	// f, err := os.OpenFile("items.json", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	// if err != nil {
-	// 	return err
-	// }
-	// defer f.Close()
-
-	// output, err := json.Marshal(&items)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// _, err = f.Write(output)
-	// if err != nil {
-	// 	return err
-	// }
-
 	return c.JSON(http.StatusOK, res)
 }
 
 func getItems(c echo.Context) error {
 	var items Items
 
-	db, err := sql.Open("sqlite3", "/Users/kitaharuka/mercari-build-training/db/mercari.sqlite3")
+	db, err := sql.Open("sqlite3", DB_PATH)
 	if err != nil {
 		return err
 	}
@@ -161,16 +146,6 @@ func getItems(c echo.Context) error {
 		items.Items = append(items.Items, item)
 	}
 
-	// jsonBytes, err := os.ReadFile("items.json")
-	// if err != nil {
-	// 	return err
-	// }
-
-	// err = json.Unmarshal(jsonBytes, &items)
-	// if err != nil {
-	// 	return err
-	// }
-
 	return c.JSON(http.StatusOK, items)
 }
 
@@ -181,7 +156,7 @@ func getItemById(c echo.Context) error {
 		return err
 	}
 
-	db, err := sql.Open("sqlite3", "/Users/kitaharuka/mercari-build-training/db/mercari.sqlite3")
+	db, err := sql.Open("sqlite3", DB_PATH)
 	if err != nil {
 		return err
 	}
@@ -202,22 +177,14 @@ func getItemById(c echo.Context) error {
 		item := Item{Name: name, Category: category, Image: image}
 		items.Items = append(items.Items, item)
 	}
-	// jsonBytes, err := os.ReadFile("items.json")
-	// if err != nil {
-	// 	return err
-	// }
 
-	// err = json.Unmarshal(jsonBytes, &items)
-	// if err != nil {
-	// 	return err
-	// }
 	return c.JSON(http.StatusOK, items.Items[id-1])
 }
 
 func searchItem(c echo.Context) error {
 	var items Items
 	keyword := c.FormValue("keyword")
-	db, err := sql.Open("sqlite3", "/Users/kitaharuka/mercari-build-training/db/mercari.sqlite3")
+	db, err := sql.Open("sqlite3", DB_PATH)
 	if err != nil {
 		return err
 	}
