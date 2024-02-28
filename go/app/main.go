@@ -19,8 +19,9 @@ import (
 )
 
 const (
-	ImgDir  = "images"
-	DB_PATH = "../db/mercari.sqlite3"
+	ImgDir         = "images"
+	DB_PATH        = "../db/mercari.sqlite3"
+	DB_SCHEMA_PATH = "../db/items.db"
 )
 
 type Items struct {
@@ -223,6 +224,30 @@ func getImg(c echo.Context) error {
 	return c.File(imgPath)
 }
 
+func setupDatabase() error {
+	db, err := sql.Open("sqlite3", DB_PATH)
+	if err != nil {
+		fmt.Println("Failed to open mercari.sqlite")
+		return err
+	}
+	defer db.Close()
+
+	schema, err := os.ReadFile(DB_SCHEMA_PATH)
+	if err != nil {
+		fmt.Println("Failed to read schema:", err)
+		return err
+	}
+
+	_, err = db.Exec(string(schema))
+	if err != nil {
+		fmt.Println(string(schema))
+		fmt.Println("Failed to create tables:", err)
+		return err
+	}
+
+	return nil
+}
+
 func main() {
 	e := echo.New()
 
@@ -240,6 +265,11 @@ func main() {
 		AllowOrigins: []string{frontURL},
 		AllowMethods: []string{http.MethodGet, http.MethodPut, http.MethodPost, http.MethodDelete},
 	}))
+
+	if err := setupDatabase(); err != nil {
+		fmt.Println("Failed to set up tables:", err)
+		return
+	}
 
 	// Routes
 	e.GET("/", root)
