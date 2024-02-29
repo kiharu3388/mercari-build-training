@@ -85,6 +85,11 @@ func addItem(c echo.Context) error {
 	}
 	defer new_image.Close()
 
+	if _, err := src.Seek(0, io.SeekStart); err != nil {
+		c.Logger().Errorf("Failed to reset file reader: %v", err)
+		return err
+	}
+
 	// Copy the file content to the hash
 	if _, err := io.Copy(new_image, src); err != nil {
 		c.Logger().Errorf("Failed to copy image file content: %v", err)
