@@ -52,11 +52,13 @@ func addItem(c echo.Context) error {
 	category := c.FormValue("category")
 	image, err := c.FormFile("image")
 	if err != nil {
+		c.Logger().Errorf("Failed to get image file: %v", err)
 		return err
 	}
 
 	src, err := image.Open()
 	if err != nil {
+		c.Logger().Errorf("Failed to open image file: %v", err)
 		return err
 	}
 	defer src.Close()
@@ -65,6 +67,7 @@ func addItem(c echo.Context) error {
 	hash := sha256.New()
 
 	if _, err := io.Copy(hash, src); err != nil {
+		c.Logger().Errorf("Failed to copy image file: %v", err)
 		return err
 	}
 
@@ -77,11 +80,14 @@ func addItem(c echo.Context) error {
 
 	new_image, err := os.Create("images/" + image_jpg)
 	if err != nil {
+		c.Logger().Errorf("Failed to create image file: %v", err)
 		return err
 	}
+	defer new_image.Close()
 
 	// Copy the file content to the hash
 	if _, err := io.Copy(new_image, src); err != nil {
+		c.Logger().Errorf("Failed to copy image file content: %v", err)
 		return err
 	}
 
@@ -96,6 +102,7 @@ func addItem(c echo.Context) error {
 
 	db, err := sql.Open("sqlite3", DB_PATH)
 	if err != nil {
+		c.Logger().Errorf("Failed to open database connection: %v", err)
 		return err
 	}
 	defer db.Close()
@@ -106,14 +113,17 @@ func addItem(c echo.Context) error {
 		if err == sql.ErrNoRows {
 			_, err = db.Exec("INSERT INTO categories (name) VALUES ($1)", item.Category)
 			if err != nil {
+				c.Logger().Errorf("Failed to insert category into database: %v", err)
 				return err
 			}
 			row := db.QueryRow(getCategoryFromNameQuery, item.Category)
 			err = row.Scan(&categoryID)
 			if err != nil {
+				c.Logger().Errorf("Failed to retrieve category ID: %v", err)
 				return err
 			}
 		} else {
+			c.Logger().Errorf("Failed to query category: %v", err)
 			return err
 		}
 	}
@@ -121,6 +131,7 @@ func addItem(c echo.Context) error {
 	cmd2 := "INSERT INTO items (name, category_id, image_name) VALUES ($1, $2, $3)"
 	_, err = db.Exec(cmd2, item.Name, categoryID, item.Image)
 	if err != nil {
+		c.Logger().Errorf("Failed to insert item into database: %v", err)
 		return err
 	}
 
