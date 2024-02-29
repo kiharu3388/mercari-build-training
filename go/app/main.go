@@ -64,6 +64,10 @@ func addItem(c echo.Context) error {
 	// Create a new SHA256 hash
 	hash := sha256.New()
 
+	if _, err := io.Copy(hash, src); err != nil {
+		return err
+	}
+
 	hashInBytes := hash.Sum(nil)
 
 	// Convert hash bytes to hex string
